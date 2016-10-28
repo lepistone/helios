@@ -103,6 +103,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -652,10 +653,17 @@ public class ZooKeeperMasterModel implements MasterModel {
                                                   final ZooKeeperClient zooKeeperClient)
       throws KeeperException {
     final ImmutableList.Builder<RolloutTask> rolloutTasks = ImmutableList.builder();
-    rolloutTasks.addAll(RollingUpdatePlanner.of(deploymentGroup)
-                            .plan(getHostStatuses(updateHosts)));
+
+    // In case we have a host in both updateHosts and undeployHosts, deduplicate so we don't do
+    // unecessary operations.
+    final List<String> updateHostsCopy = new ArrayList<>(updateHosts);
+    final List<String> undeployHostsCopy = new ArrayList<>(undeployHosts);
+    undeployHostsCopy.removeAll(updateHostsCopy);
+
     rolloutTasks.addAll(RollingUndeployPlanner.of(deploymentGroup)
-                            .plan(getHostStatuses(undeployHosts)));
+                            .plan(getHostStatuses(undeployHostsCopy)));
+    rolloutTasks.addAll(RollingUpdatePlanner.of(deploymentGroup)
+                            .plan(getHostStatuses(updateHostsCopy)));
 
     final DeploymentGroupTasks tasks = DeploymentGroupTasks.newBuilder()
         .setRolloutTasks(rolloutTasks.build())
