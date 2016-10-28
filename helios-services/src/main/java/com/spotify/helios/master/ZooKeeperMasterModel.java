@@ -956,7 +956,6 @@ public class ZooKeeperMasterModel implements MasterModel {
                                                        final DeploymentGroup deploymentGroup,
                                                        final String host) {
     final TaskStatus taskStatus = getTaskStatus(client, host, deploymentGroup.getJobId());
-    final JobId jobId = deploymentGroup.getJobId();
 
     if (taskStatus == null) {
       // The task status (i.e. /status/hosts/<host>/job/<job-id>) has been removed, indicating the
@@ -982,7 +981,7 @@ public class ZooKeeperMasterModel implements MasterModel {
       final int version = node.getStat().getVersion();
       final List<String> hostsToUndeploy = Json.read(node.getBytes(), STRING_LIST_TYPE);
 
-      if (!hostsToUndeploy.removeAll(ImmutableList.of(host))) {
+      if (!hostsToUndeploy.remove(host)) {
         // Something already removed this host. Don't bother trying to update the removed hosts.
         return opFactory.nextTask();
       }
